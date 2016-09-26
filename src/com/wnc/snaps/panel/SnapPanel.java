@@ -42,7 +42,7 @@ public class SnapPanel extends JPanel implements INewFrame
         startBt = new JButton("Start!");// 开始
         jtfMovie = new JTextField(100);
         jtfTime.setText("" + NumValBean.inturTime);
-        jtfMovie.setText("E:\\迅雷下载\\终极蜘蛛侠\\Ultimate Spider-Man S01 WEB-DL x264-FUM\\Ultimate.Spiderman.S01E06.Why.I.Hate.the.Gym.WEB-DL.x264-FUM.mp4");
+        jtfMovie.setText("D:\\TDDOWNLOAD\\【江城足球网】6月29日 欧洲杯半决赛 德国vs意大利\\北川\\");
         jtfTime.setToolTipText("设置截图间隔");
         jtfTime.setHorizontalAlignment(JTextField.CENTER);
         jtfMovie.setToolTipText("请选择一部电影或整个目录，或者手动输入！");

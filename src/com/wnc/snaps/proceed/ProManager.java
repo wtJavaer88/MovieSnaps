@@ -4,101 +4,83 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import com.wnc.snaps.bean.NumValBean;
+import com.wnc.snaps.tool.PopupDialog;
 import com.wnc.snaps.tool.RunCmd;
 
-public class ProManager
-{
+public class ProManager {
 
-    PreHelper prework;
+	public List<String> movies = new ArrayList<String>();
+	public File srcFile = new File("");
 
-    public List<String> movies = new ArrayList<String>();
-    public String tmpPath;
-    public File srcFile = new File("");
+	public String path = "";
 
-    public String path = "";
+	public ProManager(String string, int t) {
+		path = string.trim().replace("\"", "");
+		NumValBean.inturTime = t;
+	}
 
-    public ProManager(String string, int t)
-    {
-        path = string.trim().replace("\"", "");
-        NumValBean.inturTime = t;
-    }
+	public void start() {
+		getMovies();// 如果是目录,必须先获得所有视频
+		System.out.println(movies + "--------");
+		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors
+	                .newFixedThreadPool(4);
+		for (String mv : movies) {
+			// 一下四个函数分别调用四个Helper
 
-    public void start()
-    {
-        getMovies();// 如果是目录,必须先获得所有视频
-        System.out.println(movies + "--------");
-        long l = new Date().getTime();
-        for (String movie : movies)
-        {
-            tmpPath = "d:\\temp\\snaps\\";
-            // 一下四个函数分别调用四个Helper
+			executor.execute(new Task(mv, path));
+//			new Task(mv, path).run();
+		}
+		executor.shutdown();
+	}
 
-            prepare(movie);// 每个视频截取前的准备工作
-            initNumVal();
-            // 获得时分秒
-            if(new MediaHelper(this).initTime())
-            {
-                createPics();// 截图
-                dealPics();// 打水印,拼接
+	private void getMovies() {
+		getAllMovies();
+	}
 
-                // viewPic();// 查看
-                System.out.println("耗时:" + ((new Date().getTime() - l) / 1000));
-                recycle();// 删除临时文件
-            }
+	private void getAllMovies() {
+		srcFile = new File(path);
+		if (srcFile.exists()) {
+			if (srcFile.isDirectory()) {
+				getAllMoviesByPath(path);
+				System.out.println(movies.size() + ":movies_______________");
+			} else {
+				movies.add(path);
+			}
+		} else {
+			new PopupDialog("文件错误", "不存在该视频文件！");
+		}
+	}
 
-        }
-    }
+	private void getAllMoviesByPath(String strPath) {
+		File dir = new File(strPath);
+		File[] files = dir.listFiles();
+		for (File file : files) {
+			if (file.isDirectory()) {
+				getAllMoviesByPath(file.getAbsolutePath());
+			} else if (isMovie(file)) {
+				movies.add(file.getAbsolutePath());
+			}
+		}
+	}
 
-    private void initNumVal()
-    {
-        NumValBean.hour = 0;
-        NumValBean.minute = 0;
-        NumValBean.second = 0;
-        NumValBean.pCount = 0;
-    }
+	String[] movieTypes = new String[] { "avi", "mkv", "mp4", "wmv", "rm", "rmvb", "mpg" };
 
-    private void getMovies()
-    {
-        new MoviesHelper(this);
-    }
+	private boolean isMovie(File file) {
+		String strFile = file.getName();
+		String filetail = strFile.substring(strFile.lastIndexOf(".") + 1);
+		for (int i = 0; i < movieTypes.length; i++) {
+			if (movieTypes[i].equalsIgnoreCase(filetail)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-    private void prepare(String str)
-    {
-        prework = new PreHelper(this, str); // 此对象以后还用得着
-    }
-
-    private void viewPic()
-    {
-        RunCmd.runCommand("explorer.exe"
-                + say(tmpPath + prework.getMovieName() + "_p1.jpg"));
-    }
-
-    private void createPics()
-    {
-        new SnapHelper(this).snap();
-    }
-
-    private void dealPics()
-    {
-        new PicHelper(this).comcatPics();
-    }
-
-    public void recycle()
-    {
-        new File(tmpPath + "fullEmpty.jpg").delete();
-        new File(tmpPath + "partEmpty.jpg").delete();
-        new File(tmpPath + "time.txt").delete();
-        for (int i = 0; i < NumValBean.pCount; i++)
-        {
-            new File(tmpPath + (i + NumValBean.startPicIndex) + ".jpg")
-                    .delete();
-        }
-    }
-
-    public String say(String str)
-    {
-        return " \"" + str + "\" ";
-    }
+	public String say(String str) {
+		return " \"" + str + "\" ";
+	}
 }

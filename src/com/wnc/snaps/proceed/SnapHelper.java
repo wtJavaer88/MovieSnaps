@@ -3,50 +3,48 @@ package com.wnc.snaps.proceed;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.log4j.Logger;
+
+import com.wnc.basic.BasicFileUtil;
 import com.wnc.snaps.MainFrame;
 import com.wnc.snaps.bean.NumValBean;
+import com.wnc.snaps.ex.ErrCode;
+import com.wnc.snaps.ex.SnapException;
 import com.wnc.snaps.tool.RunCmd;
 
 public class SnapHelper
 {
     String snapExe = " \"" + MainFrame.FFMPEG_EXE + "\" ";
 
-    ProManager p;
+    Task task;
 
-    int hour;
-    int minute;
-    int second;
     int width;
     int height;
     int inturTime;
-    int totalTime = 0;
+    //int totalTime = 0;
 
-    public SnapHelper(ProManager pm)
+    public SnapHelper(Task  task)
     {
-        this.p = pm;
-        this.hour = NumValBean.hour;
-        this.minute = NumValBean.minute;
-        this.second = NumValBean.second;
-        this.totalTime = 3600 * hour + 60 * minute + second;
+        this.task = task;
         this.width = NumValBean.width;
         this.height = NumValBean.height;
         this.inturTime = NumValBean.inturTime;
         initParas();
+        executor = (ThreadPoolExecutor) Executors
+                .newFixedThreadPool(THREAD_COUNTS);
     }
 
     final int THREAD_COUNTS = 4;
     boolean allOver = false;
     ThreadPoolExecutor executor;
 
-    public void snap()
+    public void snap() throws SnapException
     {
-        if(totalTime < 60)
-        {
-            return;
-        }
-        executor = (ThreadPoolExecutor) Executors
-                .newFixedThreadPool(THREAD_COUNTS);
-        int totalTime = 3600 * hour + 60 * minute + second;
+        int totalTime = 3600 * task.hour + 60 * task.minute + task.second;
+      if(totalTime <= NumValBean.beginTime)
+      {
+    	  throw new SnapException(ErrCode.Time_Too_Short);
+      }
         System.out.println("totalTime:" + totalTime);
         int curTime = NumValBean.beginTime;
         while (curTime < totalTime)
@@ -54,9 +52,9 @@ public class SnapHelper
 
             executor.execute(new SnapTask(curTime));
             curTime += inturTime;
-            NumValBean.pCount++;
+            task.pCount++;
             // 强制最多只有80张
-            if(NumValBean.pCount == 80)
+            if(task.pCount == 80)
             {
                 break;
             }
@@ -73,7 +71,7 @@ public class SnapHelper
                 e.printStackTrace();
             }
         }
-        System.out.println("截图结束!###############图片数: " + NumValBean.pCount);
+        System.out.println("截图结束!###############图片数: " + task.pCount);
     }
 
     private void initParas()
@@ -92,7 +90,7 @@ public class SnapHelper
         this.h = NumValBean.height;
         textX = w - 5 * fontSize;
         textY = h - fontSize;
-        this.tmpPath = p.tmpPath;
+        this.tmpPath = task.tmpPath;
     }
 
     String picTextExe = "\"" + MainFrame.PIC_CONVERT_EXE + "\" ";
@@ -128,10 +126,13 @@ public class SnapHelper
 
             int picIndex = (time - NumValBean.beginTime) / NumValBean.inturTime
                     + NumValBean.startPicIndex;
-            RunCmd.runCommand(snapExe + " -ss " + time + " -loglevel panic -i "
-                    + say(p.path) + "  -t 0.0001 -s " + width + "x" + height
-                    + " " + say(p.tmpPath + picIndex + ".jpg"));
-
+            String pic = tmpPath + picIndex + ".jpg";
+			RunCmd.runCommand(snapExe + " -ss " + time + " -loglevel panic -i "
+                    + say(task.mvpath) + "  -t 0.0001 -s " + width + "x" + height
+                    + " " + say(pic));
+            if(!BasicFileUtil.isExistFile(pic)){
+            	Logger.getLogger("Task").error(ErrCode.Snap_Err+" "+pic);;
+            }
             RunCmd.runCommand(picTextExe
                     + say(tmpPath + (picIndex) + ".jpg")
                     + font
@@ -140,7 +141,7 @@ public class SnapHelper
                     + " -draw "
                     + say("text " + textX + "," + textY + " " + "\'"
                             + getTimeStrs(time) + "\'")
-                    + say(tmpPath + picIndex + ".jpg"));
+                    + say(pic));
         }
     }
 

@@ -4,10 +4,7 @@ public class NumValBean
 {
     public static int inturTime = 15;// 截图间隔时间
     public static int beginTime = 5;// 第几秒开始截图
-    public static int hour = 0;// 小时数
-    public static int minute = 0;// 分钟数
-    public static int second = 0;// 秒数
-    public static int pCount = 0;// 截图数
+    
     public final static int width = 320;// 图片宽
     public final static int height = 240;// 图片高
     public final static int startPicIndex = 100;// 从多少开始编号

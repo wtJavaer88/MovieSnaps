@@ -1,12 +1,14 @@
 package com.wnc.snaps.proceed;
 
+import com.wnc.basic.BasicFileUtil;
 import com.wnc.snaps.MainFrame;
 import com.wnc.snaps.bean.NumValBean;
+import com.wnc.snaps.ex.ErrCode;
+import com.wnc.snaps.ex.SnapException;
 import com.wnc.snaps.tool.RunCmd;
 
 public class PicHelper
 {
-    ProManager p;
     String picTextExe = "\"" + MainFrame.PIC_CONVERT_EXE + "\" ";
 
     String font;
@@ -27,10 +29,11 @@ public class PicHelper
     String tmpPath;
     int pCount;
 
-    public PicHelper(ProManager pm)
+    Task task;
+    public PicHelper(Task task)
     {
-        p = pm;
-        font = " -font C:\\Windows\\Fonts\\msyh.ttf -fill blue";
+    	this.task = task;
+    	font = " -font C:\\Windows\\Fonts\\msyh.ttf -fill blue";
         fontSize = NumValBean.FONT_SIZE;
         rowPics = NumValBean.ROW_PICS;
         rows = NumValBean.MAX_ROWS;
@@ -42,9 +45,9 @@ public class PicHelper
 
         this.w = NumValBean.width;
         this.h = NumValBean.height;
-        this.tmpPath = p.tmpPath;
+        this.tmpPath = task.tmpPath;
 
-        this.pCount = NumValBean.pCount;
+        this.pCount = task.pCount;
         textX = w - 5 * fontSize;
         textY = h - fontSize;
     }
@@ -52,14 +55,20 @@ public class PicHelper
     int threadCounts = 5;
     boolean allOver = false;
 
-    public void comcatPics()
+    public void comcatPics() throws SnapException
     {
         // 每页最多4x20张图片,然后慢慢拼
         rows = getSuitableRows();
+        if(rows == 0){
+        	throw new SnapException(ErrCode.PAGE_ROWS_ZERO);
+        }
         int pages = (int) Math.ceil((float) pCount / (rows * rowPics));
         System.out.println(pages + "________________________________________"
                 + rows);
         getEmptyjpg();
+        if(pages == 0){
+        	throw new SnapException(ErrCode.PIC_PAGES_ZERO);
+        }
         for (int i = 0; i < pages; i++)
         {
             String pasteStr = "";
@@ -75,21 +84,24 @@ public class PicHelper
             // 判断最后一页是全是缺, 如果有rows行就是全,否则就是缺
             int left = pCount % (rows * rowPics);
 
-            if(i == pages - 1 && left > 0 && left <= (rows - 1) * rowPics)
+            String destPic = tmpPath + task.getMovieName() + "_p"
+			        + (i + 1) + ".jpg";
+			if(i == pages - 1 && left > 0 && left <= (rows - 1) * rowPics)
             {
                 RunCmd.runCommand(picTextExe
                         + say(tmpPath + "partEmpty.jpg")
                         + pasteStr
-                        + say(tmpPath + p.prework.getMovieName() + "_p"
-                                + (i + 1) + ".jpg"));
+                        + say(destPic));
             }
             else
             {
                 RunCmd.runCommand(picTextExe
                         + say(tmpPath + "fullEmpty.jpg")
                         + pasteStr
-                        + say(tmpPath + p.prework.getMovieName() + "_p"
-                                + (i + 1) + ".jpg"));
+                        + say(destPic));
+            }
+			if(!BasicFileUtil.isExistFile(destPic)){
+            	throw new SnapException(ErrCode.PIC_PAGE_CREATE_ERR);
             }
         }
     }
@@ -149,15 +161,15 @@ public class PicHelper
         RunCmd.runCommand(picTextExe + say(tmpPath + jpgType) + font
                 + " -pointsize " + fontSize + " -draw " + "\"" + "text "
                 + offSetX + "," + (fontSize + 3) + " " + "'" + "影片目录： "
-                + p.prework.dir + " \'" + "\" " + say(tmpPath + jpgType));
+                + task.dir + " \'" + "\" " + say(tmpPath + jpgType));
         RunCmd.runCommand(picTextExe + say(tmpPath + jpgType) + font
                 + " -pointsize " + fontSize + " -draw " + "\"" + "text "
                 + offSetX + "," + (fontSize + 3) * 2 + " " + "\'" + "影片名称： "
-                + p.prework.movie + "\'" + "\" " + say(tmpPath + jpgType));
+                + task.movieName + "\'" + "\" " + say(tmpPath + jpgType));
         RunCmd.runCommand(picTextExe + say(tmpPath + jpgType) + font
                 + " -pointsize " + fontSize + " -draw " + "\"" + "text "
                 + offSetX + "," + (fontSize + 3) * 3 + " " + "\'" + "影片时长： "
-                + p.prework.movieTimeStr + "\'" + "\" "
+                + task.movieTimeStr + "\'" + "\" "
                 + say(tmpPath + jpgType));
     }
 
