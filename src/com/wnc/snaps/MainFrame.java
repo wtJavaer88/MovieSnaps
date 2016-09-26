@@ -52,6 +52,7 @@ public class MainFrame extends JFrame
             // 读取jar包内配置文件
             InputStream logIs = MainFrame.class
                     .getResourceAsStream("/log4j.properties");
+            System.out.println(logIs.available());
             Properties p2 = new Properties();
             try
             {
