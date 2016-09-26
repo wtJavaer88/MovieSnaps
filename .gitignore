@@ -39,9 +39,9 @@ $RECYCLE.BIN/
 *.apk
 *.class
 
-src/outexe.properties
-bin/
-libs/
+/src/outexe.properties
+/bin/
+
 .settings/
 
 # Files that might appear on external disk
